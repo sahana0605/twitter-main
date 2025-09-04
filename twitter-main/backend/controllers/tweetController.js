@@ -107,7 +107,23 @@ export const getAllTweets = async (req,res) => {
     // loggedInUser ka tweet + following user tweet
     try {
         const id = req.params.id;
+        
+        // Validate the ID
+        if (!id || id === 'undefined') {
+            return res.status(400).json({
+                message: "Invalid user ID",
+                success: false
+            });
+        }
+        
         const loggedInUser = await User.findById(id).lean();
+        if (!loggedInUser) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+        
         const loggedInUserTweets = await Tweet.find({ userId: id })
             .sort({ createdAt: -1 })
             .limit(50)
@@ -125,12 +141,32 @@ export const getAllTweets = async (req,res) => {
         })
     } catch (error) {
         console.log(error);
+        return res.status(500).json({
+            message: "Internal server error",
+            success: false
+        });
     }
 }
 export const getFollowingTweets = async (req,res) =>{
     try {
         const id = req.params.id;
-        const loggedInUser = await User.findById(id).lean(); 
+        
+        // Validate the ID
+        if (!id || id === 'undefined') {
+            return res.status(400).json({
+                message: "Invalid user ID",
+                success: false
+            });
+        }
+        
+        const loggedInUser = await User.findById(id).lean();
+        if (!loggedInUser) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+        
         const followingUserTweet = await Promise.all(
             (loggedInUser.following || []).map((otherUsersId)=>{
                 return Tweet.find({ userId: otherUsersId })
@@ -144,6 +180,30 @@ export const getFollowingTweets = async (req,res) =>{
         });
     } catch (error) {
         console.log(error);
+        return res.status(500).json({
+            message: "Internal server error",
+            success: false
+        });
+    }
+}
+
+export const getPublicTweets = async (req, res) => {
+    try {
+        // Get all tweets from all users (public feed)
+        const allTweets = await Tweet.find({})
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean();
+        
+        return res.status(200).json({
+            tweets: allTweets
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Failed to fetch public tweets",
+            success: false
+        });
     }
 }
  

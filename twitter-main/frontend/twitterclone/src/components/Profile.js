@@ -5,6 +5,7 @@ import { FaArrowLeft, FaCalendar, FaMapMarkerAlt, FaLink, FaEdit, FaHeart, FaRet
 import Tweet from './Tweet';
 import CreatePost from './CreatePost';
 import EditProfile from './EditProfile';
+import Api from '../services/api';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -41,122 +42,95 @@ const Profile = () => {
     loadUserContent(activeTab, username);
   }, [username, user, activeTab]);
 
-  const loadUserContent = (tab, username) => {
-    const mockTweets = [
-      {
-        _id: '1',
-        content: 'Just launched our new Twitter clone! 🚀 What do you think? #React #MERN #TwitterClone',
-        author: {
-          _id: 'user123',
-          username: username || 'sahana',
-          name: 'Sahana',
-          profilePic: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center'
-        },
-        createdAt: new Date(Date.now() - 1000 * 60 * 30),
-        likes: 42,
-        retweets: 12,
-        replies: 8,
-        isLiked: false,
-        isRetweeted: false,
-        media: null
-      },
-      {
-        _id: '2',
-        content: 'Building amazing things with React and Node.js. The developer experience is incredible! 💻✨',
-        author: {
-          _id: 'user123',
-          username: username || 'sahana',
-          name: 'Sahana',
-          profilePic: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center'
-        },
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-        likes: 128,
-        retweets: 34,
-        replies: 15,
-        isLiked: true,
-        isRetweeted: false,
-        media: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&h=400&fit=crop&crop=center'
+  const loadUserContent = async (tab, username) => {
+    try {
+      let response;
+      
+      if (tab === 'tweets') {
+        // Fetch user's own tweets
+        if (isOwnProfile && user?._id) {
+          response = await Api.getAllTweets(user._id);
+        } else {
+          // For other users, we need to implement a specific endpoint
+          // For now, use the same endpoint
+          response = await Api.getAllTweets(profileUser?._id);
+        }
+      } else {
+        // For replies, media, and likes, we'll use mock data for now
+        // as the backend doesn't have these endpoints yet
+        const mockReplies = [];
+        const mockMedia = [];
+        const mockLikes = [];
+        
+        switch (tab) {
+          case 'replies':
+            setTweets(mockReplies);
+            break;
+          case 'media':
+            setTweets(mockMedia);
+            break;
+          case 'likes':
+            setTweets(mockLikes);
+            break;
+          default:
+            setTweets([]);
+        }
+        return;
       }
-    ];
-
-    const mockReplies = [
-      {
-        _id: 'reply1',
-        content: 'This looks amazing! Great work on the UI 👏',
-        author: {
-          _id: 'user123',
-          username: username || 'sahana',
-          name: 'Sahana',
-          profilePic: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center'
-        },
-        createdAt: new Date(Date.now() - 1000 * 60 * 15),
-        likes: 15,
-        retweets: 2,
-        replies: 1,
-        isLiked: false,
-        isRetweeted: false,
-        media: null,
-        isReply: true,
-        originalTweet: 'Just launched our new Twitter clone! 🚀'
+      
+      if (response?.tweets) {
+        // Filter tweets to only show the current user's tweets
+        const userTweets = response.tweets.filter(tweet => 
+          tweet.userId === (isOwnProfile ? user?._id : profileUser?._id)
+        );
+        
+        // Map backend tweet format to frontend format
+        const mappedTweets = userTweets.map(tweet => ({
+          _id: tweet._id,
+          content: tweet.description,
+          author: {
+            _id: tweet.userId,
+            username: tweet.userDetails?.username || username || 'user',
+            name: tweet.userDetails?.name || 'User',
+            profilePic: tweet.userDetails?.profilePic || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center',
+            verified: !!tweet.userDetails?.verified
+          },
+          createdAt: tweet.createdAt,
+          likes: Array.isArray(tweet.like) ? tweet.like.length : 0,
+          retweets: 0, // Backend doesn't have retweets yet
+          replies: 0,  // Backend doesn't have replies yet
+          isLiked: Array.isArray(tweet.like) ? tweet.like.includes(user?._id) : false,
+          isRetweeted: false,
+          media: null,
+          hashtags: extractHashtags(tweet.description),
+          mentions: extractMentions(tweet.description)
+        }));
+        
+        setTweets(mappedTweets);
+        
+        // Update tweet count
+        if (profileUser) {
+          setProfileUser(prev => ({
+            ...prev,
+            tweetCount: mappedTweets.length
+          }));
+        }
       }
-    ];
-
-    const mockMedia = [
-      {
-        _id: 'media1',
-        content: 'Check out this amazing sunset! 🌅 #Photography #Nature',
-        author: {
-          _id: 'user123',
-          username: username || 'sahana',
-          name: 'Sahana',
-          profilePic: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center'
-        },
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-        likes: 89,
-        retweets: 12,
-        replies: 5,
-        isLiked: false,
-        isRetweeted: false,
-        media: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&crop=center'
-      }
-    ];
-
-    const mockLikes = [
-      {
-        _id: 'like1',
-        content: 'Amazing work on this project! The attention to detail is incredible 👌',
-        author: {
-          _id: 'user456',
-          username: 'developer_pro',
-          name: 'Developer Pro',
-          profilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=center'
-        },
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
-        likes: 234,
-        retweets: 45,
-        replies: 23,
-        isLiked: true,
-        isRetweeted: false,
-        media: null
-      }
-    ];
-
-    switch (tab) {
-      case 'tweets':
-        setTweets(mockTweets);
-        break;
-      case 'replies':
-        setTweets(mockReplies);
-        break;
-      case 'media':
-        setTweets(mockMedia);
-        break;
-      case 'likes':
-        setTweets(mockLikes);
-        break;
-      default:
-        setTweets(mockTweets);
+    } catch (error) {
+      console.error('Error loading user content:', error);
+      toast.error('Failed to load tweets');
+      setTweets([]);
     }
+  };
+
+  const extractHashtags = (text) => {
+    const hashtagRegex = /#[\w]+/g;
+    return text.match(hashtagRegex) || [];
+  };
+
+  const extractMentions = (text) => {
+    const mentionRegex = /@[\w]+/g;
+    return text.match(mentionRegex) || [];
   };
 
   const handleNewTweet = (newTweet) => {

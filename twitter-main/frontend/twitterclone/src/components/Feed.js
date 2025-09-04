@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import CreatePost from './CreatePost';
 import Tweet from './Tweet';
+import Api from '../services/api';
 import { 
   FaArrowUp, 
   FaSpinner,
@@ -30,16 +31,9 @@ const Feed = () => {
   const pullStartY = useRef(0);
   const pullStartScrollTop = useRef(0);
 
-  // Mock data for demonstration - replace with actual API calls
+  // Fetch tweets from backend
   useEffect(() => {
     fetchTweets();
-    
-    // Simulate real-time updates every 30 seconds
-    const interval = setInterval(() => {
-      simulateNewTweets();
-    }, 30000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   // Pull to refresh functionality
@@ -121,12 +115,6 @@ const Feed = () => {
     };
   }, [isPulling, pullDistance]);
 
-  const simulateNewTweets = () => {
-    if (activeTab === 'forYou') {
-      setNewTweetsCount(prev => prev + Math.floor(Math.random() * 3) + 1);
-    }
-  };
-
   const fetchTweets = async (tab = activeTab, isRefresh = false) => {
     if (isRefresh) {
       setIsRefreshing(true);
@@ -136,161 +124,73 @@ const Feed = () => {
     setError(null);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      let mockTweets = [];
+      let response;
       
       if (tab === 'following') {
-        // Following tab - tweets from people you follow
-        mockTweets = [
-          {
-            _id: 'following1',
-            content: 'Just finished a great workout! 💪 Ready to tackle the day. What are your fitness goals this week? #Fitness #Motivation',
-            author: {
-              _id: 'user1',
-              username: 'fitness_guru',
-              name: 'Fitness Guru',
-              profilePic: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=40&h=40&fit=crop&crop=center',
-              verified: true
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-            likes: 89,
-            retweets: 12,
-            replies: 8,
-            isLiked: false,
-            isRetweeted: false,
-            media: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop&crop=center'
-          },
-          {
-            _id: 'following2',
-            content: 'Working on some exciting new features for our app! Can\'t wait to share them with you all. #Development #Innovation',
-            author: {
-              _id: 'user2',
-              username: 'tech_developer',
-              name: 'Tech Developer',
-              profilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=center',
-              verified: false
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 45), // 45 minutes ago
-            likes: 156,
-            retweets: 23,
-            replies: 15,
-            isLiked: true,
-            isRetweeted: false,
-            media: null
-          },
-          {
-            _id: 'following3',
-            content: 'Beautiful sunset tonight! Nature never fails to amaze me. 🌅 #Nature #Photography #Sunset',
-            author: {
-              _id: 'user3',
-              username: 'nature_lover',
-              name: 'Nature Lover',
-              profilePic: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=center',
-              verified: false
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-            likes: 234,
-            retweets: 45,
-            replies: 12,
-            isLiked: false,
-            isRetweeted: true,
-            media: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&crop=center'
-          }
-        ];
+        // Fetch tweets from users you follow (requires authentication)
+        if (!user?._id) {
+          setError('Please login to see following tweets');
+          setTweets([]);
+          return;
+        }
+        response = await Api.getFollowingTweets(user._id);
       } else {
-        // For you tab - general trending content
-        mockTweets = [
-          {
-            _id: '1',
-            content: '12 PM.. High chance of heavy rains across Mumbai coast ⛈️ Very heavy rains over Palghar & Alibaug ⚠️ Mumbai & MMR also getting intense pop ups which can form and can give good rains over today & tomorrow. Currently one formed over Mulund-Airoli stretch. More to form #MumbaiRains',
-            author: {
-              _id: 'user1',
-              username: 'rushikesh_agre_',
-              name: 'Mumbai Rains',
-              profilePic: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=40&h=40&fit=crop&crop=center',
-              verified: true
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-            likes: 1247,
-            retweets: 89,
-            replies: 156,
-            isLiked: false,
-            isRetweeted: false,
-            media: 'https://images.unsplash.com/photo-1605727216801-e27ce1d0cc28?w=600&h=400&fit=crop&crop=center'
-          },
-          {
-            _id: '2',
-            content: 'Just launched our new Twitter clone! 🚀 What do you think? #React #MERN #TwitterClone #WebDev',
-            author: {
-              _id: 'user2',
-              username: 'sahana',
-              name: 'Sahana',
-              profilePic: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center',
-              verified: false
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-            likes: 42,
-            retweets: 12,
-            replies: 8,
-            isLiked: false,
-            isRetweeted: false,
-            media: null
-          },
-          {
-            _id: '3',
-            content: 'Building amazing things with React and Node.js. The developer experience is incredible! 💻✨ #React #JavaScript #WebDev',
-            author: {
-              _id: 'user3',
-              username: 'coder123',
-              name: 'Sarah Coder',
-              profilePic: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=center',
-              verified: false
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-            likes: 128,
-            retweets: 34,
-            replies: 15,
-            isLiked: true,
-            isRetweeted: false,
-            media: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&h=400&fit=crop&crop=center'
-          },
-          {
-            _id: '4',
-            content: 'Learning new technologies is always exciting. What are you learning this week? 🤔 #Learning #Tech #Programming',
-            author: {
-              _id: 'user4',
-              username: 'learner',
-              name: 'John Learner',
-              profilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=center',
-              verified: false
-            },
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-            likes: 89,
-            retweets: 23,
-            replies: 31,
-            isLiked: false,
-            isRetweeted: true,
-            media: null
-          }
-        ];
+        // Fetch all public tweets (no authentication required)
+        response = await Api.getPublicTweets();
       }
       
-      setTweets(mockTweets);
+      if (response?.tweets) {
+        // Map backend tweet format to frontend format
+        const mappedTweets = response.tweets.map(tweet => ({
+          _id: tweet._id,
+          content: tweet.description,
+          author: {
+            _id: tweet.userId,
+            username: tweet.userDetails?.username || 'user',
+            name: tweet.userDetails?.name || 'User',
+            profilePic: tweet.userDetails?.profilePic || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center',
+            verified: !!tweet.userDetails?.verified
+          },
+          createdAt: tweet.createdAt,
+          likes: Array.isArray(tweet.like) ? tweet.like.length : 0,
+          retweets: 0, // Backend doesn't have retweets yet
+          replies: 0,  // Backend doesn't have replies yet
+          isLiked: Array.isArray(tweet.like) && user?._id ? tweet.like.includes(user._id) : false,
+          isRetweeted: false,
+          media: null,
+          hashtags: extractHashtags(tweet.description),
+          mentions: extractMentions(tweet.description)
+        }));
+        
+        setTweets(mappedTweets);
       setLastRefresh(Date.now());
       
       if (isRefresh) {
         setNewTweetsCount(0);
         toast.success('Feed refreshed! 🎉');
+        }
+      } else {
+        setTweets([]);
       }
     } catch (err) {
+      console.error('Error fetching tweets:', err);
       setError('Failed to load tweets');
+      setTweets([]);
       toast.error('Failed to load tweets');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
+  };
+
+  const extractHashtags = (text) => {
+    const hashtagRegex = /#[\w]+/g;
+    return text.match(hashtagRegex) || [];
+  };
+
+  const extractMentions = (text) => {
+    const mentionRegex = /@[\w]+/g;
+    return text.match(mentionRegex) || [];
   };
 
   useEffect(() => {
@@ -456,14 +356,20 @@ const Feed = () => {
       
       {/* Tweets */}
       <div className="divide-y divide-gray-800">
-        {tweets.map((tweet) => (
+        {tweets.length === 0 && !loading ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400 text-lg">No tweets yet. Be the first to tweet!</p>
+          </div>
+        ) : (
+          tweets.map((tweet) => (
           <Tweet
             key={tweet._id}
             tweet={tweet}
             onAction={handleTweetAction}
             onClick={handleTweetClick}
           />
-        ))}
+          ))
+        )}
       </div>
 
       {/* Load More */}

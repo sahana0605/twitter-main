@@ -119,6 +119,24 @@ class ApiService {
     });
   }
 
+  async getAllTweets(userId) {
+    return this.makeRequest(`/tweet/alltweets/${userId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getFollowingTweets(userId) {
+    return this.makeRequest(`/tweet/followingtweets/${userId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getPublicTweets() {
+    return this.makeRequest('/tweet/public', {
+      method: 'GET',
+    });
+  }
+
   async likeTweet(tweetId) {
     return this.makeRequest(`/tweet/like/${tweetId}`, {
       method: 'PUT',
