@@ -18,14 +18,14 @@ const SignUp = () => {
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.user);
+  const { loading, error, isAuthenticated, user } = useSelector((state) => state.user);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate(user?._id ? `/profile/${user._id}` : '/home');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   // Handle error messages
   useEffect(() => {
@@ -82,7 +82,8 @@ const SignUp = () => {
       const { confirmPassword, ...userData } = formData;
       const result = await dispatch(registerUser(userData)).unwrap();
       toast.success(result.message || 'Account created successfully! Welcome to Twitter!');
-      navigate('/');
+      const userId = result?.user?._id;
+      navigate(userId ? `/profile/${userId}` : '/home');
     } catch (error) {
       // Error is handled by the useEffect above
     }

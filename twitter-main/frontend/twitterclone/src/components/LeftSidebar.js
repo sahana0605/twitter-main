@@ -32,7 +32,7 @@ const LeftSidebar = ({ onClose }) => {
     { path: '/messages', icon: FaEnvelope, label: 'Messages' },
     { path: '/bookmarks', icon: FaBookmark, label: 'Bookmarks' },
     { path: '/lists', icon: FaList, label: 'Lists' },
-    { path: `/profile/${user?.username}`, icon: FaUser, label: 'Profile' },
+    { path: `/profile/${user?._id}`, icon: FaUser, label: 'Profile' },
   ];
 
   const handleLogout = async () => {
@@ -112,10 +112,10 @@ const LeftSidebar = ({ onClose }) => {
             <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-900 border border-gray-700 rounded-2xl shadow-lg z-50">
               <div className="p-2">
                 <Link
-                  to={`/profile/${user?.username}`}
+                  to={`/profile/${user?._id}`}
                   onClick={() => {
                     setShowUserMenu(false);
-                    handleNavClick(`/profile/${user?.username}`);
+                    handleNavClick(`/profile/${user?._id}`);
                   }}
                   className="block w-full text-left px-4 py-3 rounded-xl hover:bg-gray-800 text-white transition-colors"
                 >

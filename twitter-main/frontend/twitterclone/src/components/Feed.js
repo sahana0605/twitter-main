@@ -211,6 +211,11 @@ const Feed = () => {
   };
 
   const handleTweetAction = (tweetId, action) => {
+    if (action === 'delete') {
+      setTweets(prevTweets => prevTweets.filter(tweet => tweet._id !== tweetId));
+      return;
+    }
+    
     setTweets(prevTweets => 
       prevTweets.map(tweet => {
         if (tweet._id === tweetId) {

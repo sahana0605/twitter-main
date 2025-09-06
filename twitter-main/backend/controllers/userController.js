@@ -38,13 +38,16 @@ export const Register = async (req, res) => {
         });
 
         console.log('User created successfully:', user._id); // Debug log
+        console.log('TOKEN_SECRET exists:', !!process.env.TOKEN_SECRET); // Debug log
+        console.log('TOKEN_SECRET value:', process.env.TOKEN_SECRET); // Debug log
+        console.log('All env vars:', Object.keys(process.env).filter(key => key.includes('TOKEN'))); // Debug log
 
         // Create token
         const tokenData = {
             userId: user._id,
             email: user.email
         }
-        const token = await jwt.sign(tokenData, process.env.TOKEN_SECRET, { expiresIn: "7d" });
+        const token = jwt.sign(tokenData, process.env.TOKEN_SECRET, { expiresIn: "7d" });
         
         // Remove password from response
         const userResponse = {
@@ -79,9 +82,11 @@ export const Register = async (req, res) => {
 
     } catch (error) {
         console.log('Registration error:', error); // Debug log
+        console.log('Error details:', error.message); // Debug log
         return res.status(500).json({
             message: "Internal server error.",
-            success: false
+            success: false,
+            error: error.message
         });
     }
 }
@@ -117,12 +122,13 @@ export const Login = async (req, res) => {
         }
         
         console.log('Login successful for:', email); // Debug log
+        console.log('TOKEN_SECRET exists:', !!process.env.TOKEN_SECRET); // Debug log
         
         const tokenData = {
             userId: user._id,
             email: user.email
         }
-        const token = await jwt.sign(tokenData, process.env.TOKEN_SECRET, { expiresIn: "7d" });
+        const token = jwt.sign(tokenData, process.env.TOKEN_SECRET, { expiresIn: "7d" });
         
         // Remove password from response
         const userResponse = {
@@ -156,9 +162,11 @@ export const Login = async (req, res) => {
             })
     } catch (error) {
         console.log('Login error:', error); // Debug log
+        console.log('Error details:', error.message); // Debug log
         return res.status(500).json({
             message: "Internal server error.",
-            success: false
+            success: false,
+            error: error.message
         });
     }
 }
@@ -317,6 +325,36 @@ export const getMyProfile = async (req, res) => {
         })
     } catch (error) {
         console.log('Get profile error:', error); // Debug log
+        return res.status(500).json({
+            message: "Internal server error.",
+            success: false
+        });
+    }
+};
+
+export const getPublicProfile = async (req, res) => {
+    try {
+        const id = req.params.id;
+        console.log('Getting public profile for user ID:', id); // Debug log
+        
+        const user = await User.findById(id).select("-password -email");
+        
+        if (!user) {
+            console.log('Public profile not found for ID:', id); // Debug log
+            return res.status(404).json({
+                message: "User not found.",
+                success: false
+            });
+        }
+        
+        console.log('Public profile retrieved for:', user.username); // Debug log
+        
+        return res.status(200).json({
+            user,
+            success: true
+        })
+    } catch (error) {
+        console.log('Get public profile error:', error); // Debug log
         return res.status(500).json({
             message: "Internal server error.",
             success: false

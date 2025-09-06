@@ -13,7 +13,8 @@ import {
   FaReply,
   FaQuoteRight,
   FaFlag,
-  FaEye
+  FaEye,
+  FaTrash
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -102,6 +103,20 @@ const Tweet = ({ tweet, onAction, onClick, isReply = false, showThread = false }
     e.stopPropagation();
     toast.success('Report submitted. Thank you for helping keep Twitter safe! 🛡️');
     setShowOptions(false);
+  };
+
+  const handleDeleteTweet = (e) => {
+    e.stopPropagation();
+    if (onAction) {
+      onAction(tweet._id, 'delete');
+      toast.success('Tweet deleted successfully! 🗑️');
+    }
+    setShowOptions(false);
+  };
+
+  const handleUsernameClick = (e) => {
+    e.stopPropagation();
+    navigate(`/profile/${tweet.author._id}`);
   };
 
   const handleViewAnalytics = (e) => {
@@ -194,13 +209,21 @@ const Tweet = ({ tweet, onAction, onClick, isReply = false, showThread = false }
             <div className="flex-1 min-w-0">
               {/* Header */}
               <div className="flex items-center space-x-2 mb-1">
-                <span className="font-bold text-white hover:underline">
+                <button
+                  onClick={handleUsernameClick}
+                  className="font-bold text-white hover:underline cursor-pointer"
+                >
                   {tweet.author.name}
-                </span>
+                </button>
                 {tweet.author.verified && (
                   <FaCheck className="w-4 h-4 text-blue-500" />
                 )}
-                <span className="text-gray-400">@{tweet.author.username}</span>
+                <button
+                  onClick={handleUsernameClick}
+                  className="text-gray-400 hover:underline cursor-pointer"
+                >
+                  @{tweet.author.username}
+                </button>
                 <span className="text-gray-400">·</span>
                 <span className="text-gray-400">{formatTime(tweet.createdAt)}</span>
                 {tweet.isRetweeted && (
@@ -314,11 +337,20 @@ const Tweet = ({ tweet, onAction, onClick, isReply = false, showThread = false }
 
                   {showOptions && (
                     <div className="absolute right-0 top-8 bg-black border border-gray-800 rounded-lg shadow-lg z-10 min-w-48">
+                      {user?._id === tweet.author._id && (
+                        <button
+                          onClick={handleDeleteTweet}
+                          className="w-full px-4 py-3 text-left text-red-500 hover:bg-red-500/10 flex items-center space-x-3"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                          <span>Delete Tweet</span>
+                        </button>
+                      )}
                       <button
                         onClick={handleQuoteTweet}
                         className="w-full px-4 py-3 text-left text-white hover:bg-gray-800 flex items-center space-x-3"
                       >
-                                                 <FaQuoteRight className="w-4 h-4" />
+                        <FaQuoteRight className="w-4 h-4" />
                         <span>Quote Tweet</span>
                       </button>
                       <button
@@ -328,13 +360,15 @@ const Tweet = ({ tweet, onAction, onClick, isReply = false, showThread = false }
                         <FaChartBar className="w-4 h-4" />
                         <span>View Tweet analytics</span>
                       </button>
-                      <button
-                        onClick={handleReport}
-                        className="w-full px-4 py-3 text-left text-white hover:bg-gray-800 flex items-center space-x-3"
-                      >
-                        <FaFlag className="w-4 h-4" />
-                        <span>Report Tweet</span>
-                      </button>
+                      {user?._id !== tweet.author._id && (
+                        <button
+                          onClick={handleReport}
+                          className="w-full px-4 py-3 text-left text-white hover:bg-gray-800 flex items-center space-x-3"
+                        >
+                          <FaFlag className="w-4 h-4" />
+                          <span>Report Tweet</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

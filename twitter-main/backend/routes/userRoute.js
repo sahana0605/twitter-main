@@ -1,5 +1,5 @@
 import express from "express";
-import { Login, Register, bookmark, follow, getMyProfile, getOtherUsers, logout, unfollow, getMe, updateProfile } from "../controllers/userController.js";
+import { Login, Register, bookmark, follow, getMyProfile, getPublicProfile, getOtherUsers, logout, unfollow, getMe, updateProfile } from "../controllers/userController.js";
 import { Activity } from "../models/activitySchema.js";
 import isAuthenticated from "../config/auth.js";
 import { User } from "../models/userSchema.js";
@@ -16,7 +16,13 @@ router.route("/test").get(async (req, res) => {
             message: "Database connection successful!",
             userCount: users.length,
             users: users,
-            latestActivities
+            latestActivities,
+            envCheck: {
+                TOKEN_SECRET: !!process.env.TOKEN_SECRET,
+                TOKEN_SECRET_LENGTH: process.env.TOKEN_SECRET?.length || 0,
+                NODE_ENV: process.env.NODE_ENV,
+                PORT: process.env.PORT
+            }
         });
     } catch (error) {
         console.log('Test route error:', error);
@@ -34,6 +40,7 @@ router.route("/me").get(isAuthenticated, getMe);
 router.route("/update-profile").put(isAuthenticated, updateProfile);
 router.route("/bookmark/:id").put(isAuthenticated, bookmark)
 router.route("/profile/:id").get(isAuthenticated, getMyProfile);
+router.route("/public-profile/:id").get(getPublicProfile);
 router.route("/otheruser/:id").get(isAuthenticated, getOtherUsers);
 router.route("/follow/:id").post(isAuthenticated, follow);
 router.route("/unfollow/:id").post(isAuthenticated, unfollow);

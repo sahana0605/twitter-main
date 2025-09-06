@@ -5,11 +5,12 @@ import { FaArrowLeft, FaCalendar, FaMapMarkerAlt, FaLink, FaEdit, FaHeart, FaRet
 import Tweet from './Tweet';
 import CreatePost from './CreatePost';
 import EditProfile from './EditProfile';
+import FollowList from './FollowList';
 import Api from '../services/api';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
-  const { username } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.user);
   const [profileUser, setProfileUser] = useState(null);
@@ -19,41 +20,87 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isNotificationsOn, setIsNotificationsOn] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isFollowListOpen, setIsFollowListOpen] = useState(false);
+  const [followListType, setFollowListType] = useState('followers');
 
   useEffect(() => {
-    const ownProfile = user?.username === username;
-    setIsOwnProfile(ownProfile);
+    const init = async () => {
+      // Check if we have a valid ID
+      if (!id || id === 'undefined' || id === 'null') {
+        console.error('Invalid user ID:', id);
+        toast.error('Invalid user ID');
+        return;
+      }
 
-    setProfileUser({
-      _id: ownProfile ? user?._id : 'user123',
-      name: ownProfile ? user?.name : 'Sahana',
-      username: username || 'sahana',
-      bio: 'Building amazing things with React and Node.js. Passionate about web development and creating user-friendly applications.',
-      profilePic: ownProfile ? user?.profilePic : 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=center',
-      coverPic: 'https://via.placeholder.com/800x300/6C757D/FFFFFF?text=Cover+Image',
-      location: 'San Francisco, CA',
-      website: 'https://example.com',
-      joinedDate: 'March 2023',
-      following: 1234,
-      followers: 5678,
-      tweetCount: 4 // Mock initial tweet count
-    });
+      const ownProfile = user?._id === id;
+      setIsOwnProfile(ownProfile);
 
-    loadUserContent(activeTab, username);
-  }, [username, user, activeTab]);
+      try {
+        let res;
+        // Try authenticated endpoint first if user exists, fallback to public endpoint
+        if (user) {
+          try {
+            res = await Api.getProfile(id);
+          } catch (authError) {
+            console.log('Auth endpoint failed, trying public endpoint:', authError);
+            res = await Api.getPublicProfile(id);
+          }
+        } else {
+          res = await Api.getPublicProfile(id);
+        }
+        
+        const u = res?.user || {};
+        const followersIds = Array.isArray(u.followers) ? u.followers : [];
+        const followingIds = Array.isArray(u.following) ? u.following : [];
+        setProfileUser({
+          _id: u._id,
+          name: u.name || 'User',
+          username: u.username || 'user',
+          bio: u.bio || '',
+          profilePic: u.profilePic || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=center',
+          coverPic: u.coverPic || 'https://via.placeholder.com/800x300/6C757D/FFFFFF?text=Cover+Image',
+          location: u.location || '',
+          website: u.website || '',
+          joinedDate: new Date(u.createdAt || Date.now()).toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+          following: followingIds.length,
+          followers: followersIds.length,
+          followingIds,
+          followersIds,
+          tweetCount: 0
+        });
+        // initialize follow toggle if viewing other user's profile
+        setIsFollowing(followersIds.includes(user?._id));
+      } catch (e) {
+        console.error('Profile load error:', e);
+        toast.error('Failed to load profile');
+      }
 
-  const loadUserContent = async (tab, username) => {
+      await loadUserContent(activeTab);
+    };
+    if (id) init();
+  }, [id, user, activeTab]);
+
+  const loadUserContent = async (tab) => {
+    // Check if we have a valid ID
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid user ID for loading content:', id);
+      return;
+    }
+
     try {
       let response;
       
       if (tab === 'tweets') {
-        // Fetch user's own tweets
-        if (isOwnProfile && user?._id) {
-          response = await Api.getAllTweets(user._id);
+        // Fetch user's own tweets - try authenticated endpoint first, fallback to public
+        if (user) {
+          try {
+            response = await Api.getAllTweets(id);
+          } catch (authError) {
+            console.log('Auth tweets endpoint failed, trying public endpoint:', authError);
+            response = await Api.getPublicUserTweets(id);
+          }
         } else {
-          // For other users, we need to implement a specific endpoint
-          // For now, use the same endpoint
-          response = await Api.getAllTweets(profileUser?._id);
+          response = await Api.getPublicUserTweets(id);
         }
       } else {
         // For replies, media, and likes, we'll use mock data for now
@@ -80,9 +127,7 @@ const Profile = () => {
       
       if (response?.tweets) {
         // Filter tweets to only show the current user's tweets
-        const userTweets = response.tweets.filter(tweet => 
-          tweet.userId === (isOwnProfile ? user?._id : profileUser?._id)
-        );
+        const userTweets = response.tweets.filter(tweet => String(tweet.userId) === String(id));
         
         // Map backend tweet format to frontend format
         const mappedTweets = userTweets.map(tweet => ({
@@ -90,7 +135,7 @@ const Profile = () => {
           content: tweet.description,
           author: {
             _id: tweet.userId,
-            username: tweet.userDetails?.username || username || 'user',
+            username: tweet.userDetails?.username || 'user',
             name: tweet.userDetails?.name || 'User',
             profilePic: tweet.userDetails?.profilePic || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=center',
             verified: !!tweet.userDetails?.verified
@@ -153,10 +198,25 @@ const Profile = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    loadUserContent(tab, username);
+    loadUserContent(tab);
   };
 
   const handleTweetAction = (tweetId, action) => {
+    if (action === 'delete') {
+      setTweets(prevTweets => {
+        const filteredTweets = prevTweets.filter(tweet => tweet._id !== tweetId);
+        // Update tweet count
+        if (profileUser) {
+          setProfileUser(prev => ({
+            ...prev,
+            tweetCount: filteredTweets.length
+          }));
+        }
+        return filteredTweets;
+      });
+      return;
+    }
+    
     setTweets(prevTweets => 
       prevTweets.map(tweet => {
         if (tweet._id === tweetId) {
@@ -192,12 +252,37 @@ const Profile = () => {
     );
   };
 
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing);
-    if (!isFollowing) {
-      toast.success(`You're now following @${username}! 👥`);
-    } else {
-      toast.success(`You unfollowed @${username}`);
+  const handleFollow = async () => {
+    if (!user || !profileUser?._id) {
+      toast.error('Please login to follow users');
+      return;
+    }
+    try {
+      // optimistic update
+      setIsFollowing((prev) => !prev);
+      setProfileUser((prev) => {
+        if (!prev) return prev;
+        const delta = isFollowing ? -1 : 1;
+        return { ...prev, followers: Math.max(0, (prev.followers || 0) + delta) };
+      });
+
+      if (!isFollowing) {
+        await Api.followUser(profileUser._id);
+        toast.success(`You're now following @${profileUser?.username}! 👥`);
+      } else {
+        await Api.unfollowUser(profileUser._id);
+        toast.success(`You unfollowed @${profileUser?.username}`);
+      }
+    } catch (err) {
+      // revert on error
+      setIsFollowing((prev) => !prev);
+      setProfileUser((prev) => {
+        if (!prev) return prev;
+        const delta = !isFollowing ? -1 : 1;
+        return { ...prev, followers: Math.max(0, (prev.followers || 0) + delta) };
+      });
+      console.error('Follow action failed', err);
+      toast.error('Failed to update follow status');
     }
   };
 
@@ -212,6 +297,11 @@ const Profile = () => {
 
   const handleEditProfile = () => {
     setIsEditProfileOpen(true);
+  };
+
+  const handleOpenFollowList = (type) => {
+    setFollowListType(type);
+    setIsFollowListOpen(true);
   };
 
     return (
@@ -312,14 +402,20 @@ const Profile = () => {
                 </div>
 
           <div className="flex space-x-5 text-sm">
-            <div className="flex items-center space-x-1">
+            <button
+              onClick={() => handleOpenFollowList('following')}
+              className="flex items-center space-x-1 hover:underline cursor-pointer"
+            >
               <span className="font-bold text-white">{profileUser?.following}</span>
               <span className="text-gray-400">Following</span>
-                </div>
-            <div className="flex items-center space-x-1">
+            </button>
+            <button
+              onClick={() => handleOpenFollowList('followers')}
+              className="flex items-center space-x-1 hover:underline cursor-pointer"
+            >
               <span className="font-bold text-white">{profileUser?.followers}</span>
               <span className="text-gray-400">Followers</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -393,6 +489,14 @@ const Profile = () => {
       <EditProfile 
         isOpen={isEditProfileOpen} 
         onClose={() => setIsEditProfileOpen(false)} 
+      />
+
+      {/* Follow List Modal */}
+      <FollowList
+        isOpen={isFollowListOpen}
+        onClose={() => setIsFollowListOpen(false)}
+        userId={id}
+        type={followListType}
       />
     </div>
   );

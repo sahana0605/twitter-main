@@ -20,8 +20,12 @@ import AuthCheck from './components/AuthCheck';
 import { useSelector } from 'react-redux';
 
 function RootRedirect() {
-  const { isAuthenticated } = useSelector((state) => state.user);
-  return isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />;
+  const { isAuthenticated, user } = useSelector((state) => state.user);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  const target = user?._id ? `/profile/${user._id}` : '/home';
+  return <Navigate to={target} replace />;
 }
 
 function App() {
@@ -64,7 +68,7 @@ function App() {
 
             {/* protected app routes */}
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/:id" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/tweet/:id" element={<ProtectedRoute><TweetDetail /></ProtectedRoute>} />
             <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

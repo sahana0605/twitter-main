@@ -14,14 +14,15 @@ const Login = () => {
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.user);
+  const { loading, error, isAuthenticated, user } = useSelector((state) => state.user);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/home');
+      const userId = user?._id;
+      navigate(userId ? `/profile/${userId}` : '/home');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   // Handle error messages
   useEffect(() => {
@@ -49,7 +50,8 @@ const Login = () => {
     try {
       const result = await dispatch(loginUser(formData)).unwrap();
       toast.success(result.message || 'Welcome back!');
-      navigate('/home');
+      const userId = result?.user?._id;
+      navigate(userId ? `/profile/${userId}` : '/home');
     } catch (error) {
       // Error is handled by the useEffect above
     }

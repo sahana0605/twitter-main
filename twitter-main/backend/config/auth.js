@@ -13,11 +13,15 @@ const isAuthenticated = async (req,res,next) => {
                 success:false
             })
         }
-        const decode = await jwt.verify(token, process.env.TOKEN_SECRET);
+        const decode = jwt.verify(token, process.env.TOKEN_SECRET);
         req.user = decode.userId;
         next();
     } catch (error) {
-        console.log(error);
+        console.log('Authentication error:', error);
+        return res.status(401).json({
+            message: "Invalid token.",
+            success: false
+        });
     }
 }
 export default isAuthenticated;

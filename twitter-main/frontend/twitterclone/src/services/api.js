@@ -81,6 +81,12 @@ class ApiService {
     });
   }
 
+  async getPublicProfile(userId) {
+    return this.makeRequest(`/user/public-profile/${userId}`, {
+      method: 'GET',
+    });
+  }
+
   async getOtherUsers(userId) {
     return this.makeRequest(`/user/otheruser/${userId}`, {
       method: 'GET',
@@ -121,6 +127,12 @@ class ApiService {
 
   async getAllTweets(userId) {
     return this.makeRequest(`/tweet/alltweets/${userId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getPublicUserTweets(userId) {
+    return this.makeRequest(`/tweet/public-user-tweets/${userId}`, {
       method: 'GET',
     });
   }

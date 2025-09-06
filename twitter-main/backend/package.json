@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "cross-env PORT=5000 node index.js",
     "dev": "cross-env PORT=5000 nodemon index.js",
     "start:frontend": "cross-env PORT=3000 npm --prefix ../frontend/twitterclone start",
     "dev:all": "concurrently -n backend,frontend -c green,blue \"npm run dev\" \"npm run start:frontend\"",
